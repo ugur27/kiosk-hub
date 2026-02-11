@@ -2,267 +2,222 @@
 <!DOCTYPE html>
 <html lang="nl">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Smart Corporate Kiosk – BDR Thermea</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Corporate Kiosk</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700;900&display=swap');
+        
+        body, html { 
+            margin: 0; padding: 0; height: 100%; width: 100%; 
+            overflow: hidden; background: #000; 
+            font-family: 'Inter', sans-serif; color: white;
+        }
 
-  <!-- Tailwind (runtime) -->
-  <script src="https://cdn.tailwindcss.com"></script>
+        /* Scenes vloeien in elkaar over */
+        .scene { 
+            position: absolute; inset: 0; opacity: 0; 
+            transition: opacity 1.5s cubic-bezier(0.4, 0, 0.2, 1); 
+            z-index: 1; pointer-events: none;
+        }
+        .scene.active { opacity: 1; pointer-events: auto; z-index: 2; }
 
-  <!-- Corporate Typography -->
-  <style>
-    /* BDR corporate font (styleguide): Source Sans Pro (Bold/Regular/Light) [1](https://bdrtg.sharepoint.com/sites/connect/Shared%20Documents/Styleguides/BDR-Styleguide-v2.0.pdf) */
-    @import url('https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@300;400;600;700;900&display=swap');
+        iframe, video { width: 100%; height: 100%; border: none; object-fit: cover; }
 
-    :root {
-      /* === BDR Primaire kleuren (uit styleguide) === */
-      --bdr-blue:  #1951A0;  /* BDR BLUE [1](https://bdrtg.sharepoint.com/sites/connect/Shared%20Documents/Styleguides/BDR-Styleguide-v2.0.pdf) */
-      --bdr-grey:  #EFECEA;  /* BDR GREY [1](https://bdrtg.sharepoint.com/sites/connect/Shared%20Documents/Styleguides/BDR-Styleguide-v2.0.pdf) */
-      --bdr-black: #231B37;  /* BDR BLACK [1](https://bdrtg.sharepoint.com/sites/connect/Shared%20Documents/Styleguides/BDR-Styleguide-v2.0.pdf) */
-      --bdr-white: #FFFFFF;  /* BDR WHITE [1](https://bdrtg.sharepoint.com/sites/connect/Shared%20Documents/Styleguides/BDR-Styleguide-v2.0.pdf) */
+        /* UI Elementen */
+        .overlay { 
+            position: fixed; inset: 0; z-index: 10; 
+            pointer-events: none; display: flex; flex-direction: column; 
+            justify-content: space-between; padding: 40px;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, transparent 20%, transparent 80%, rgba(0,0,0,0.7) 100%);
+        }
 
-      /* === BDR Secundair === */
-      --bdr-purple:    #786E9C; /* [1](https://bdrtg.sharepoint.com/sites/connect/Shared%20Documents/Styleguides/BDR-Styleguide-v2.0.pdf) */
-      --bdr-lightblue: #87C3EB; /* [1](https://bdrtg.sharepoint.com/sites/connect/Shared%20Documents/Styleguides/BDR-Styleguide-v2.0.pdf) */
-      --bdr-green:     #15AF97; /* [1](https://bdrtg.sharepoint.com/sites/connect/Shared%20Documents/Styleguides/BDR-Styleguide-v2.0.pdf) */
-      --bdr-yellow:    #FFCC00; /* [1](https://bdrtg.sharepoint.com/sites/connect/Shared%20Documents/Styleguides/BDR-Styleguide-v2.0.pdf) */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 24px; padding: 20px 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
 
-      /* Hydrogen Blue (optioneel voor H₂‑secties) */
-      --bdr-h2-blue: #389CD7;  /* [1](https://bdrtg.sharepoint.com/sites/connect/Shared%20Documents/Styleguides/BDR-Styleguide-v2.0.pdf) */
+        /* Nieuws Ticker */
+        .ticker-container {
+            position: fixed; bottom: 0; left: 0; width: 100%;
+            background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(10px);
+            padding: 14px 0; border-top: 3px solid #3b82f6; z-index: 20;
+        }
 
-      /* Afgeleide tokens */
-      --bg-gradient-top: rgba(0,0,0,0.60);
-      --bg-gradient-bot: rgba(0,0,0,0.75);
-      --glass-bg:        rgba(255,255,255,0.06);
-      --glass-border:    rgba(255,255,255,0.12);
-      --text-high:       rgba(255,255,255,0.95);
-      --text-mid:        rgba(255,255,255,0.75);
-      --text-low:        rgba(255,255,255,0.55);
-      --shadow-strong:   0 18px 50px rgba(0,0,0,0.55);
-    }
+        .ticker-text {
+            display: inline-block; white-space: nowrap;
+            padding-left: 100%; animation: ticker 40s linear infinite;
+            font-weight: 700; font-size: 1.3rem; text-transform: uppercase; letter-spacing: 2px;
+            color: #f8fafc;
+        }
 
-    * { box-sizing: border-box; }
-    body, html {
-      margin: 0; padding: 0; height: 100%; width: 100%;
-      overflow: hidden; background: var(--bdr-black);
-      font-family: 'Source Sans Pro', system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, sans-serif;
-      color: var(--text-high);
-    }
+        @keyframes ticker {
+            0% { transform: translate3d(0, 0, 0); }
+            100% { transform: translate3d(-100%, 0, 0); }
+        }
 
-    .scene {
-      position: absolute; inset: 0; opacity: 0;
-      transition: opacity 1.5s cubic-bezier(0.4, 0, 0.2, 1);
-      z-index: 1; pointer-events: none; background: var(--bdr-black);
-    }
-    .scene.active { opacity: 1; pointer-events: auto; z-index: 2; }
-
-    iframe, video { width: 100%; height: 100%; border: none; object-fit: cover; }
-
-    .overlay {
-      position: fixed; inset: 0; z-index: 10; pointer-events: none;
-      display: flex; flex-direction: column; justify-content: space-between; padding: 32px;
-      background: linear-gradient(to bottom, var(--bg-gradient-top) 0%, transparent 25%, transparent 75%, var(--bg-gradient-bot) 100%);
-    }
-
-    .glass-card {
-      background: var(--glass-bg);
-      backdrop-filter: blur(12px);
-      border: 1px solid var(--glass-border);
-      border-radius: 20px; padding: 16px 22px;
-      box-shadow: var(--shadow-strong);
-      pointer-events: auto;
-    }
-
-    .brand-lockup { display: flex; align-items: center; gap: 16px; }
-    .brand-lockup .safe-area { padding: 8px 0; }
-    .brand-lockup img { height: 28px; display: block; }
-
-    .ticker-container {
-      position: fixed; bottom: 0; left: 0; width: 100%;
-      background: rgba(15,23,42,0.96);
-      backdrop-filter: blur(10px);
-      padding: 12px 0;
-      border-top: 3px solid var(--bdr-blue);
-      z-index: 20;
-    }
-    .ticker-text {
-      display: inline-block; white-space: nowrap;
-      padding-left: 100%; animation: ticker 38s linear infinite;
-      font-weight: 800; font-size: 1.1rem; text-transform: uppercase; letter-spacing: 0.12em;
-      color: var(--text-high);
-    }
-    @keyframes ticker { 0% {transform: translate3d(0,0,0);} 100% {transform: translate3d(-100%,0,0);} }
-
-    .progress-bar {
-      position: fixed; top: 0; left: 0; height: 5px; width: 0%;
-      background: var(--bdr-blue); transition: width 0.1s linear; z-index: 100;
-      box-shadow: 0 0 18px rgba(25,81,160,0.85);
-    }
-
-    .pulse-dot { position: relative; display: inline-flex; height: 0.75rem; width: 0.75rem; }
-    .pulse-dot::before {
-      content: ""; position: absolute; inset: 0; border-radius: 9999px;
-      background: var(--bdr-blue); animation: ping 1.3s cubic-bezier(0,0,0.2,1) infinite; opacity: .65;
-    }
-    .pulse-dot::after {
-      content: ""; position: relative; display: inline-flex; height: 0.75rem; width: 0.75rem; border-radius: 9999px;
-      background: var(--bdr-blue);
-    }
-    @keyframes ping { 0% {transform: scale(1); opacity: .7;} 75%,100% {transform: scale(2); opacity: 0;} }
-
-    .label-kicker {
-      text-transform: uppercase; font-weight: 900; letter-spacing: .2em;
-      color: var(--text-low); font-size: 10px;
-    }
-
-    :focus-visible { outline: 2px solid var(--bdr-blue); outline-offset: 3px; }
-  </style>
+        .progress-bar {
+            position: fixed; top: 0; left: 0; height: 6px;
+            background: #3b82f6; transition: width 0.1s linear; z-index: 100;
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.9);
+        }
+    </style>
 </head>
 <body>
 
-  <div id="scene-host"></div>
+    <div id="scene-host"></div>
 
-  <div class="overlay">
-    <div class="flex justify-between items-start gap-4">
-      <div class="glass-card flex items-center gap-6">
-        <!-- Branding (kies wit/zwart logo conform ondergrond, per styleguide) [1](https://bdrtg.sharepoint.com/sites/connect/Shared%20Documents/Styleguides/BDR-Styleguide-v2.0.pdf) -->
-        <div class="brand-lockup">
-          <div class="safe-area">
-            <img alt="BDR Thermea Group" 
-                 src="/assets/logos/bdr-thermea-logo-white.png" />
-          </div>
-          <div class="h-6 w-px bg-white/20"></div>
+    <div class="overlay">
+        <!-- Top Sectie: Klok en Status -->
+        <div class="flex justify-between items-start">
+            <div class="glass-card flex items-center gap-8">
+                <div>
+                    <div id="clock" class="text-5xl font-black tracking-tighter leading-none">00:00</div>
+                    <div id="date" class="text-xs uppercase font-bold opacity-60 mt-1 tracking-widest">Laden...</div>
+                </div>
+                <div class="h-12 w-px bg-white/20"></div>
+                <div id="weather" class="text-2xl font-light">Laden...</div>
+            </div>
+            
+            <div class="glass-card flex flex-col items-end">
+                <div class="text-[10px] uppercase opacity-50 font-black tracking-[0.2em] mb-2">Huidige Presentatie</div>
+                <div class="flex items-center gap-3">
+                    <span class="relative flex h-3 w-3">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
+                    </span>
+                    <span class="text-xl font-black uppercase tracking-tighter" id="content-label">Initialiseren...</span>
+                </div>
+            </div>
         </div>
 
-        <div>
-          <div id="clock" class="text-5xl font-black tracking-tight leading-none">00:00</div>
-          <div id="date" class="text-xs uppercase font-bold opacity-70 mt-1 tracking-widest">Laden...</div>
+        <!-- Optioneel: Bedrijfslogo Branding (Linksonder boven de ticker) -->
+        <div class="mb-12">
+            <div class="glass-card inline-block border-l-4 border-l-blue-500">
+                <span class="text-sm font-bold opacity-40 uppercase tracking-widest block mb-1">Corporate Hub</span>
+                <span class="text-2xl font-black">JOUW BEDRIJF</span>
+            </div>
         </div>
-
-        <div class="h-12 w-px bg-white/20 mx-2"></div>
-
-        <div id="weather" class="text-2xl font-semibold text-white/90">Laden...</div>
-      </div>
-
-      <div class="glass-card flex flex-col items-end">
-        <div class="label-kicker mb-1">Huidige Presentatie</div>
-        <div class="flex items-center gap-3">
-          <span class="pulse-dot"></span>
-          <span class="text-xl font-extrabold uppercase tracking-tight" id="content-label">Initialiseren...</span>
-        </div>
-      </div>
     </div>
 
-    <div class="mb-12">
-      <div class="glass-card inline-block border-l-4" style="border-left-color: var(--bdr-blue);">
-        <span class="text-sm font-bold opacity-60 uppercase tracking-widest block mb-1">Corporate Hub</span>
-        <span class="text-2xl font-black">BDR THERMEA GROUP</span>
-      </div>
+    <div class="ticker-container">
+        <div class="ticker-text" id="ticker-content">+++ WELKOM +++ LIVE DASHBOARDS +++ BEDRIJFSNIEUWS +++</div>
     </div>
-  </div>
 
-  <div class="ticker-container">
-    <div class="ticker-text" id="ticker-content">
-      +++ NIEUWS: Welkom bij de nieuwe Corporate Kiosk +++ Bekijk de laatste KPI's +++ Vergeet niet de uren te boeken voor vrijdag +++
-    </div>
-  </div>
+    <div class="progress-bar" id="progress"></div>
 
-  <div class="progress-bar" id="progress"></div>
+    <script>
+        // --- CONFIGURATIE: PAS DIT AAN ---
+        const CONFIG = {
+            scenes: [
+                { 
+                    type: 'pbi', 
+                    label: 'Sales Dashboard',
+                    // Gebruik de link via Bestand > Rapport insluiten > Website of portal
+                    url: 'PLAK_HIER_JE_POWERBI_LINK', 
+                    duration: 60 // seconden
+                },
+                { 
+                    type: 'video', 
+                    label: 'Bedrijfsvideo',
+                    // Kan een YouTube link zijn of een direct .mp4 pad
+                    url: 'https://www.youtube.com/watch?v=LXb3EKWsInQ', 
+                    duration: 45 
+                }
+            ],
+            ticker: "+++ NIEUWS: Welkom bij de nieuwe Corporate Kiosk +++ Bekijk de laatste KPI's op de voet +++ Vergeet niet de uren in te vullen voor vrijdag +++",
+            location: { lat: 52.3676, lon: 4.9041, city: 'Amsterdam' }
+        };
 
-  <script>
-    // --- CONFIGURATIE ---
-    const CONFIG = {
-      scenes: [
-        { type: 'pbi', label: 'Sales Dashboard', url: 'PLAK_HIER_JE_POWERBI_LINK', duration: 60 },
-        { type: 'video', label: 'Bedrijfsvideo', url: 'https://www.youtube.com/watch?v=LXb3EKWsInQ', duration: 45 }
-      ],
-      ticker: "+++ NIEUWS: Welkom bij de nieuwe Corporate Kiosk +++ Bekijk de laatste KPI's +++ Vergeet niet de uren te boeken voor vrijdag +++",
-      location: { lat: 52.2129919, lon: 5.2793703, city: 'Apeldoorn' }
-    };
+        let currentIdx = -1;
+        let timer;
+        let progressInterval;
 
-    let currentIdx = -1;
-    let timer;
-    let progressInterval;
-
-    function init() {
-      updateClock();
-      updateWeather();
-      document.getElementById('ticker-content').innerText = CONFIG.ticker;
-      setInterval(updateClock, 1000);
-      setInterval(updateWeather, 600000);
-      nextScene();
-      document.body.style.cursor = 'none'; // kiosk
-    }
-
-    function nextScene() {
-      currentIdx = (currentIdx + 1) % CONFIG.scenes.length;
-      renderScene(CONFIG.scenes[currentIdx]);
-    }
-
-    function renderScene(scene) {
-      const host = document.getElementById('scene-host');
-      const duration = scene.duration * 1000;
-
-      const div = document.createElement('div');
-      div.className = 'scene';
-
-      if (scene.type === 'video') {
-        if (scene.url.includes('youtube.com') || scene.url.includes('youtu.be')) {
-          const vidId = (scene.url.split('v=')[1]?.split('&')[0]) || scene.url.split('/').pop();
-          div.innerHTML = `<iframe src="https://www.youtube.com/embed/${vidId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${vidId}" allow="autoplay; fullscreen"></iframe>`;
-        } else {
-          div.innerHTML = `<video src="${scene.url}" autoplay muted loop playsinline></video>`;
+        function init() {
+            updateClock();
+            updateWeather();
+            document.getElementById('ticker-content').innerText = CONFIG.ticker;
+            setInterval(updateClock, 1000);
+            setInterval(updateWeather, 600000); // 10 min refresh
+            
+            nextScene();
         }
-      } else {
-        div.innerHTML = `<iframe src="${scene.url}" allowfullscreen="true"></iframe>`;
-      }
 
-      const active = host.querySelector('.scene.active');
-      if (active) {
-        active.classList.remove('active');
-        setTimeout(() => active.remove(), 2000);
-      }
+        function nextScene() {
+            currentIdx = (currentIdx + 1) % CONFIG.scenes.length;
+            renderScene(CONFIG.scenes[currentIdx]);
+        }
 
-      host.appendChild(div);
-      setTimeout(() => div.classList.add('active'), 100);
+        function renderScene(scene) {
+            const host = document.getElementById('scene-host');
+            const duration = scene.duration * 1000;
 
-      document.getElementById('content-label').innerText = scene.label;
-      startProgress(duration);
+            const div = document.createElement('div');
+            div.className = 'scene';
+            
+            // Video Logica (YouTube vs Direct)
+            if (scene.type === 'video') {
+                if (scene.url.includes('youtube.com') || scene.url.includes('youtu.be')) {
+                    const vidId = scene.url.split('v=')[1]?.split('&')[0] || scene.url.split('/').pop();
+                    div.innerHTML = `<iframe src="https://www.youtube.com/embed/${vidId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${vidId}"></iframe>`;
+                } else {
+                    div.innerHTML = `<video src="${scene.url}" autoplay muted loop playsinline></video>`;
+                }
+            } else {
+                // Werkt voor Power BI en andere iFrames
+                div.innerHTML = `<iframe src="${scene.url}" allowFullScreen="true"></iframe>`;
+            }
 
-      clearTimeout(timer);
-      timer = setTimeout(nextScene, duration);
-    }
+            // Overgangsanimatie
+            const active = host.querySelector('.scene.active');
+            if(active) {
+                active.classList.remove('active');
+                setTimeout(() => active.remove(), 2000);
+            }
 
-    function updateClock() {
-      const now = new Date();
-      document.getElementById('clock').innerText = now.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
-      document.getElementById('date').innerText = now.toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long' });
-    }
+            host.appendChild(div);
+            setTimeout(() => div.classList.add('active'), 100);
 
-    async function updateWeather() {
-      try {
-        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${CONFIG.location.lat}&longitude=${CONFIG.location.lon}&current_weather=true`);
-        const data = await res.json();
-        const temp = Math.round(data.current_weather.temperature);
-        document.getElementById('weather').innerText = `${CONFIG.location.city}: ${temp}°C`;
-      } catch (e) {
-        document.getElementById('weather').innerText = CONFIG.location.city;
-      }
-    }
+            // UI Label update
+            document.getElementById('content-label').innerText = scene.label;
+            startProgress(duration);
 
-    function startProgress(ms) {
-      const bar = document.getElementById('progress');
-      let start = Date.now();
-      clearInterval(progressInterval);
-      progressInterval = setInterval(() => {
-        const perc = ((Date.now() - start) / ms) * 100;
-        bar.style.width = Math.min(perc, 100) + '%';
-        if (perc >= 100) clearInterval(progressInterval);
-      }, 50);
-    }
+            clearTimeout(timer);
+            timer = setTimeout(nextScene, duration);
+        }
 
-    window.onload = init;
-  </script>
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('clock').innerText = now.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+            document.getElementById('date').innerText = now.toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long' });
+        }
+
+        async function updateWeather() {
+            try {
+                const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${CONFIG.location.lat}&longitude=${CONFIG.location.lon}&current_weather=true`);
+                const data = await res.json();
+                const temp = Math.round(data.current_weather.temperature);
+                document.getElementById('weather').innerText = `${CONFIG.location.city}: ${temp}°C`;
+            } catch(e) {
+                document.getElementById('weather').innerText = CONFIG.location.city;
+            }
+        }
+
+        function startProgress(ms) {
+            const bar = document.getElementById('progress');
+            let start = Date.now();
+            clearInterval(progressInterval);
+            progressInterval = setInterval(() => {
+                let perc = ((Date.now() - start) / ms) * 100;
+                bar.style.width = Math.min(perc, 100) + '%';
+                if(perc >= 100) clearInterval(progressInterval);
+            }, 50);
+        }
+
+        window.onload = init;
+    </script>
 </body>
 </html>
-``
